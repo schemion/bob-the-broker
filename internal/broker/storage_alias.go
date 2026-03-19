@@ -2,4 +2,4 @@ package broker
 
 import "bob-the-broker/internal/storage"
 
-type Message = storage.Message
+type Storage = storage.Storage
