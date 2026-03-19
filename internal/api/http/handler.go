@@ -8,10 +8,10 @@ import (
 )
 
 type Handler struct {
-	broker *broker.Broker
+	broker broker.Broker
 }
 
-func NewHandler(b *broker.Broker) *Handler {
+func NewHandler(b broker.Broker) *Handler {
 	return &Handler{
 		broker: b,
 	}
@@ -28,7 +28,7 @@ func (h *Handler) Produce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.broker.Produce(req.Topic, req.Key, []byte(req.Value))
+	err := h.broker.Produce(req.Topic, req.Key, req.Value)
 	if err != nil {
 		http.Error(w, "failed to produce message", http.StatusInternalServerError)
 		return

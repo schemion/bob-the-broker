@@ -9,7 +9,7 @@ import (
 func TestProduceAndFetch(t *testing.T) {
 	broker := NewBroker()
 
-	err := broker.Produce("test-topic", "key1", []byte("hello"))
+	err := broker.Produce("test-topic", "key1", "hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,8 +31,8 @@ func TestProduceAndFetch(t *testing.T) {
 func TestOffsets(t *testing.T) {
 	broker := NewBroker()
 
-	for i := 0; i < 5; i++ {
-		broker.Produce("t", "", []byte(fmt.Sprintf("msg-%d", i)))
+	for i := range 5 {
+		broker.Produce("t", "", fmt.Sprintf("msg-%d", i))
 	}
 
 	msgs, _ := broker.Fetch("t", 0, 2, 2)
@@ -51,11 +51,11 @@ func TestConcurrentProduce(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			broker.Produce("t", "", []byte(fmt.Sprintf("msg-%d", i)))
+			broker.Produce("t", "", fmt.Sprintf("msg-%d", i))
 		}(i)
 	}
 

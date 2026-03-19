@@ -6,10 +6,10 @@ type Partition struct {
 	storage storage.Storage
 }
 
-func (p *Partition) AppendMessage(msg Message) (int64, error) {
+func (p *Partition) AppendMessage(msg storage.Message) (int64, error) {
 	return p.storage.AppendMessage(msg)
 }
 
-func (p *Partition) FetchMessages(offset int64, limit int) ([]Message, error) {
+func (p *Partition) FetchMessages(offset int64, limit int) ([]storage.Message, error) {
 	return p.storage.FetchMessages(offset, limit)
 }

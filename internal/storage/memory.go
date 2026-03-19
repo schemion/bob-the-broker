@@ -2,16 +2,21 @@ package storage
 
 import "sync"
 
-type MemoryStorage struct {
+type Storage interface {
+	AppendMessage(msg Message) (int64, error)
+	FetchMessages(offset int64, limit int) ([]Message, error)
+}
+
+type memoryStorage struct {
 	messages []Message
 	mu       sync.RWMutex
 }
 
-func NewMemoryStorage() *MemoryStorage {
-	return &MemoryStorage{messages: make([]Message, 0)}
+func NewMemoryStorage() *memoryStorage {
+	return &memoryStorage{messages: make([]Message, 0)}
 }
 
-func (m *MemoryStorage) AppendMessage(msg Message) (int64, error) {
+func (m *memoryStorage) AppendMessage(msg Message) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -20,7 +25,7 @@ func (m *MemoryStorage) AppendMessage(msg Message) (int64, error) {
 	return msg.Offset, nil
 }
 
-func (m *MemoryStorage) FetchMessages(offset int64, limit int) ([]Message, error) {
+func (m *memoryStorage) FetchMessages(offset int64, limit int) ([]Message, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -33,10 +38,7 @@ func (m *MemoryStorage) FetchMessages(offset int64, limit int) ([]Message, error
 	}
 
 	start := int(offset)
-	end := start + limit
-	if end > len(m.messages) {
-		end = len(m.messages)
-	}
+	end := min(start+limit, len(m.messages))
 
 	out := make([]Message, end-start)
 	copy(out, m.messages[start:end])

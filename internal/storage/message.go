@@ -3,5 +3,5 @@ package storage
 type Message struct {
 	Offset int64
 	Key    string
-	Value  []byte
+	Value  string
 }

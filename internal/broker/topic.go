@@ -1,12 +1,20 @@
 package broker
 
-import "hash/fnv"
+import (
+	"bob-the-broker/internal/storage"
+	"hash/fnv"
+)
+
+type queue interface {
+	AppendMessage(msg storage.Message) (int64, error)
+	FetchMessages(offset int64, limit int) ([]storage.Message, error)
+}
 
 type Topic struct {
 	partitions []*Partition
 }
 
-func NewTopic(partitionCount int, storageFactory func() Storage) *Topic {
+func NewTopic(partitionCount int, storageFactory func() queue) *Topic {
 	if partitionCount <= 0 {
 		partitionCount = 1
 	}
