@@ -11,15 +11,11 @@ import (
 )
 
 type Server struct {
-	Addr    string
-	Handler http.Handler
-	srv     *http.Server
+	srv *http.Server
 }
 
 func NewServer(addr string, handler http.Handler) *Server {
 	return &Server{
-		Addr:    addr,
-		Handler: handler,
 		srv: &http.Server{
 			Addr:         addr,
 			Handler:      handler,

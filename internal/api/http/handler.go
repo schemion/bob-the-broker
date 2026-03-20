@@ -3,9 +3,11 @@ package httpapi
 import (
 	"bob-the-broker/internal/broker"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Handler struct {
@@ -41,6 +43,9 @@ func (h *Handler) SseSubscribe(w http.ResponseWriter, r *http.Request) {
 	defer h.broker.Unsubscribe(topic, ch)
 	defer log.Printf("sse: unsubscribe topic=%s remote=%s", topic, r.RemoteAddr)
 
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+	rc := http.NewResponseController(w)
 	for {
 		select {
 		case <-r.Context().Done():
@@ -66,8 +71,20 @@ func (h *Handler) SseSubscribe(w http.ResponseWriter, r *http.Request) {
 				log.Printf("sse: marshal failed topic=%s key=%s err=%v", msg.Topic, msg.Key, err)
 				continue
 			}
-			if _, err := io.WriteString(w, "data: "+string(b)+"\n\n"); err != nil {
+			if _, err := io.WriteString(w, fmt.Sprintf("data: %s\n\n", b)); err != nil {
 				log.Printf("sse: write failed topic=%s remote=%s err=%v", topic, r.RemoteAddr, err)
+				return
+			}
+			flusher.Flush()
+		case <-ticker.C:
+			err := rc.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			if err != nil {
+				log.Printf("deadline error: %v", err)
+				return
+			}
+
+			if _, err := io.WriteString(w, "ping\n\n"); err != nil {
+				log.Printf("failed to ping")
 				return
 			}
 			flusher.Flush()
