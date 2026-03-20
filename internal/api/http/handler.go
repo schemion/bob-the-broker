@@ -3,7 +3,8 @@ package httpapi
 import (
 	"bob-the-broker/internal/broker"
 	"encoding/json"
-	"fmt"
+	"io"
+	"log"
 	"net/http"
 )
 
@@ -35,20 +36,40 @@ func (h *Handler) SseSubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("sse: subscribe topic=%s remote=%s", topic, r.RemoteAddr)
 	ch := h.broker.Subscribe(topic)
 	defer h.broker.Unsubscribe(topic, ch)
+	defer log.Printf("sse: unsubscribe topic=%s remote=%s", topic, r.RemoteAddr)
 
 	for {
 		select {
 		case <-r.Context().Done():
+			log.Printf("sse: context done topic=%s remote=%s err=%v", topic, r.RemoteAddr, r.Context().Err())
 			return
 		case msg, ok := <-ch:
 			if !ok {
+				log.Printf("sse: channel closed topic=%s remote=%s", topic, r.RemoteAddr)
 				return
 			}
-			data := fmt.Sprintf(`data: {"topic":"%s","key":"%s","value":"%s"}\n\n`,
-				msg.Topic, msg.Key, msg.Value)
-			fmt.Fprint(w, data)
+
+			payload := struct {
+				Topic string `json:"topic"`
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			}{
+				Topic: msg.Topic,
+				Key:   msg.Key,
+				Value: msg.Value,
+			}
+			b, err := json.Marshal(payload)
+			if err != nil {
+				log.Printf("sse: marshal failed topic=%s key=%s err=%v", msg.Topic, msg.Key, err)
+				continue
+			}
+			if _, err := io.WriteString(w, "data: "+string(b)+"\n\n"); err != nil {
+				log.Printf("sse: write failed topic=%s remote=%s err=%v", topic, r.RemoteAddr, err)
+				return
+			}
 			flusher.Flush()
 		}
 	}
@@ -61,12 +82,14 @@ func (h *Handler) Produce(w http.ResponseWriter, r *http.Request) {
 		Value string `json:"value"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("produce: decode failed remote=%s err=%v", r.RemoteAddr, err)
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	err := h.broker.Produce(req.Topic, req.Key, req.Value)
 	if err != nil {
+		log.Printf("produce: broker error topic=%s key=%s remote=%s err=%v", req.Topic, req.Key, r.RemoteAddr, err)
 		http.Error(w, "failed to produce message", http.StatusInternalServerError)
 		return
 	}
@@ -82,17 +105,22 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("fetch: decode failed remote=%s err=%v", r.RemoteAddr, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	msgs, err := h.broker.Fetch(req.Topic, req.Partition, req.Offset, req.Limit)
 	if err != nil {
+		log.Printf("fetch: broker error topic=%s partition=%d offset=%d limit=%d remote=%s err=%v",
+			req.Topic, req.Partition, req.Offset, req.Limit, r.RemoteAddr, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(msgs)
+	if err := json.NewEncoder(w).Encode(msgs); err != nil {
+		log.Printf("fetch: encode failed topic=%s remote=%s err=%v", req.Topic, r.RemoteAddr, err)
+	}
 }
 
 func (h *Handler) Routes() http.Handler {
