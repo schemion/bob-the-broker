@@ -11,6 +11,9 @@ func (b *impl) CreateTopic(name string, partitions int) error {
 		return errors.New("topic name is required")
 	}
 
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	if _, exists := b.topics[name]; exists {
 		return errors.New("topic already exists")
 	}

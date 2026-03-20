@@ -1,10 +1,10 @@
 package httpapi
 
 import (
-	"encoding/json"
-	"net/http"
-
 	"bob-the-broker/internal/broker"
+	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 type Handler struct {
@@ -14,6 +14,43 @@ type Handler struct {
 func NewHandler(b broker.Broker) *Handler {
 	return &Handler{
 		broker: b,
+	}
+}
+
+func (h *Handler) SseSubscribe(w http.ResponseWriter, r *http.Request) {
+	topic := r.URL.Query().Get("topic")
+	if topic == "" {
+		http.Error(w, "topic query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	ch := h.broker.Subscribe(topic)
+	defer h.broker.Unsubscribe(topic, ch)
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			data := fmt.Sprintf(`data: {"topic":"%s","key":"%s","value":"%s"}\n\n`,
+				msg.Topic, msg.Key, msg.Value)
+			fmt.Fprint(w, data)
+			flusher.Flush()
+		}
 	}
 }
 
@@ -63,6 +100,5 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.HandleFunc("/produce", h.Produce)
 	mux.HandleFunc("/fetch", h.Fetch)
-
 	return mux
 }
