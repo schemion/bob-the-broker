@@ -100,5 +100,6 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.HandleFunc("/produce", h.Produce)
 	mux.HandleFunc("/fetch", h.Fetch)
+	mux.HandleFunc("/subscribe", h.SseSubscribe)
 	return mux
 }
