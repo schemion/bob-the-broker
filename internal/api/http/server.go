@@ -37,7 +37,7 @@ func (s *Server) Start() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	return s.srv.Close()
+	return s.Stop()
 }
 
 func (s *Server) Stop() error {

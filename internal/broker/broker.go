@@ -65,7 +65,7 @@ func (b *impl) Produce(topicName, key string, value string) error {
 	topic, ok := b.topics[topicName]
 	if !ok {
 		topic = NewTopic(1, func() queue {
-			return storage.NewMemoryStorage()
+			return storage.NewMemoryStorage(10000)
 		})
 		b.topics[topicName] = topic
 		log.Printf("broker: created topic %s with 1 partition", topicName)

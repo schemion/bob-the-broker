@@ -14,6 +14,13 @@ type Handler struct {
 	broker broker.Broker
 }
 
+const (
+	maxRequestBodyBytes = 1 * 1024 * 1024
+	maxValueBytes       = 256 * 1024
+	maxTopicLen         = 128
+	maxKeyLen           = 256
+)
+
 func NewHandler(b broker.Broker) *Handler {
 	return &Handler{
 		broker: b,
@@ -93,6 +100,7 @@ func (h *Handler) SseSubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Produce(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req struct {
 		Topic string `json:"topic"`
 		Key   string `json:"key"`
@@ -101,6 +109,19 @@ func (h *Handler) Produce(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("produce: decode failed remote=%s err=%v", r.RemoteAddr, err)
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Topic) == 0 || len(req.Topic) > maxTopicLen {
+		http.Error(w, "invalid topic", http.StatusBadRequest)
+		return
+	}
+	if len(req.Key) > maxKeyLen {
+		http.Error(w, "key too long", http.StatusBadRequest)
+		return
+	}
+	if len(req.Value) > maxValueBytes {
+		http.Error(w, "value too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 

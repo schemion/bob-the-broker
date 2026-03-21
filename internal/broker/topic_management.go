@@ -19,7 +19,7 @@ func (b *impl) CreateTopic(name string, partitions int) error {
 	}
 
 	b.topics[name] = NewTopic(partitions, func() queue {
-		return storage.NewMemoryStorage()
+		return storage.NewMemoryStorage(10000)
 	})
 	return nil
 }
