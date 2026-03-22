@@ -4,15 +4,21 @@ import (
 	httpapi "bob-the-broker/internal/api/http"
 	"bob-the-broker/internal/broker"
 	"log"
+	"os"
 )
 
 func main() {
 	b := broker.NewBroker()
 
-	handler := httpapi.NewHandler(b)
-	server := httpapi.NewServer(":8080", handler.Routes())
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "9092"
+	}
 
-	log.Println("Server started on :8080")
+	handler := httpapi.NewHandler(b)
+	server := httpapi.NewServer(":"+port, handler.Routes())
+
+	log.Println("Server started on port", port)
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
 	}

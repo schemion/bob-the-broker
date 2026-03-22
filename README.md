@@ -9,6 +9,27 @@ go run ./cmd/bobthebroker
 
 Server listens on `:8080`.
 
+## Docker
+Build image:
+```bash
+docker build -t bob-the-broker:local .
+```
+
+Run container (default port mapping):
+```bash
+docker run -p 8080:8080 bob-the-broker:local
+```
+
+Run with custom host port:
+```bash
+docker run -p 9090:8080 bob-the-broker:local
+```
+
+Run with custom all host port:
+```bash
+docker run -p 9092:9092 -e PORT=9092 bob-the-broker:local
+```
+
 ## HTTP API
 
 ### Produce
