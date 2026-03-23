@@ -1,10 +1,15 @@
 package main
 
 import (
-	httpapi "bob-the-broker/internal/api/http"
+	grpcapi "bob-the-broker/internal/api/grpc"
 	"bob-the-broker/internal/broker"
+	"bob-the-broker/internal/brokerpb"
 	"log"
+	"net"
 	"os"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -12,14 +17,20 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "9092"
+		port = "50051"
 	}
 
-	handler := httpapi.NewHandler(b)
-	server := httpapi.NewServer(":"+port, handler.Routes())
+	grpcServer := grpc.NewServer()
+	grpcSrv := grpcapi.NewGrpcBroker(b)
+
+	brokerpb.RegisterBrokerServiceServer(grpcServer, grpcSrv)
+	reflection.Register(grpcServer)
 
 	log.Println("Server started on port", port)
-	if err := server.Start(); err != nil {
+	lis, err := net.Listen("tcp", ":"+port)
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	grpcServer.Serve(lis)
 }

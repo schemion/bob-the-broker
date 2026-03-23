@@ -8,6 +8,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/bobthebroker ./cmd/bobthebroker
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=build /out/bobthebroker /bobthebroker
-EXPOSE 9092
+ENV PORT=50051
+EXPOSE 50051
 USER nonroot:nonroot
 ENTRYPOINT ["/bobthebroker"]
