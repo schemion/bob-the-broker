@@ -17,7 +17,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "9092"
+		port = "50051"
 	}
 
 	grpcServer := grpc.NewServer()
