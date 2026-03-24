@@ -2,14 +2,33 @@
 
 Minimal in-memory message broker with gRPC API (including server-streaming subscriptions).
 
-## Run
+![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)
+![gRPC](https://img.shields.io/badge/gRPC-Enabled-20B2AA?logo=grpc&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![GHCR](https://img.shields.io/badge/GHCR-Image-333?logo=github)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## Quickstart
 ```bash
 go run ./cmd/bobthebroker
 ```
 
 Server listens on `:50051` by default. Override with `PORT`.
 
+## Configuration
+- `PORT` — gRPC server port (default: `50051`)
+
+## Run
+```bash
+go run ./cmd/bobthebroker
+```
+
 ## Docker
+Image (GHCR):
+```bash
+docker pull ghcr.io/schemion/bob-the-broker:latest
+```
+
 Build image:
 ```bash
 docker build -t bob-the-broker .
